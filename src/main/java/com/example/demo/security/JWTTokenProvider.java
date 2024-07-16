@@ -1,9 +1,9 @@
-package com.example.demo.entity.security;
+package com.example.demo.security;
 
 import com.example.demo.entity.User;
 import io.jsonwebtoken.*;
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 

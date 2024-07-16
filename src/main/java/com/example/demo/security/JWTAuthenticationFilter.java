@@ -1,12 +1,13 @@
-package com.example.demo.entity.security;
+package com.example.demo.security;
 
-import ch.qos.logback.core.util.StringUtil;
 import com.example.demo.entity.User;
 import com.example.demo.entity.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,30 +21,42 @@ import java.util.Collections;
 
 @Component
 public class JWTAuthenticationFilter extends OncePerRequestFilter {
-
+    public static final Logger LOG = LoggerFactory.getLogger(JWTAuthenticationFilter.class);
     @Autowired
     private JWTTokenProvider jwtTokenProvider;
     @Autowired
     private CustomUserDetailsService customUserDetailsService;
     @Autowired
     private HttpServletRequest httpServletRequest;
+    @Autowired
+    private HttpServletResponse httpServletResponse;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-    String jwt = getJWTFromRequest(httpServletRequest);
-    if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
-        Long userId = jwtTokenProvider.getUserIdToken(jwt);
-        User userDetails = customUserDetailsService.loadUserById(userId);
+    protected void doFilterInternal(HttpServletRequest HttpServletRequest, HttpServletResponse HttpServletResponse, FilterChain filterChain) throws ServletException, IOException {
+       try {
+        String jwt = getJWTFromRequest(httpServletRequest);
+            if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
+                Long userId = jwtTokenProvider.getUserIdToken(jwt);
+                User userDetails = customUserDetailsService.loadUserById(userId);
 
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                userDetails, null, Collections.emptyList()
-        );
-        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));;
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, Collections.emptyList()
+                );
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));
+                ;
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+        } catch(Exception ex) {
+           LOG.error("Could not set user authentication");
+       }
+       filterChain.doFilter(httpServletRequest, httpServletResponse);
     }
 
 
-    }
+
+
+
+
     private  String  getJWTFromRequest(HttpServletRequest request) {
         String bearToken = request.getHeader(SecurityConstants.HEADER_STRING);
         if (StringUtils.hasText(bearToken) && bearToken.startsWith(SecurityConstants.TOKEN_PREFIX)){
